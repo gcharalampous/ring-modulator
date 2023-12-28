@@ -18,8 +18,8 @@ pts = 512                               # Number of points (wavelength)
 
 # RING MODULATOR PARAMETERS
 filter_type = 'add-drop'                # Change this to 'all-pass' for the other case
-k1 = 0.18                               # Coupling Coefficient k1
-k2 = 0.23                               # Coupling Coefficient k2
+k1 = 0.14                               # E-field Coupling Coefficient k1
+k2 = 0.14                               # E-field Coupling Coefficient k2
 R = 3.95e-6                             # Ring Resonator Radius
 FSR = 3.2e12                            # Desires FSR in Hz
 Lc = 0                                  # Straight Coupling Length

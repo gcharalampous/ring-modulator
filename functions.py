@@ -71,10 +71,11 @@ def calculate_round_trip_loss_phase(alpha_i_dB, alpha_pn_dB, neff_i, neff_pn, wa
     A_pn = math.exp(-alpha_pn * 100 * user.L_pn)  
     A_exc = math.exp(-alpha_exc * 100 * L_exc)                     
 
-    # Total Optical Attenuation
+    # Total Optical Attenuation and RT total loss
     A = A_pn * A_exc 
+    A_rt = np.exp(-A*L_rt)
 
-    return phi_rt, A, L_rt
+    return phi_rt, A, L_rt, A_rt
 
 
 def calculate_electric_fields(k1, k2, A, L_rt, phi_rt, wavelength, filter_type, Ng):
@@ -154,13 +155,41 @@ def convert_FSR_to_radius(FSR, Ng):
     return R
 
 
+def critical_coupling(k2, A_rt, filter_type):
+    """
+    Calculate critical coupling for different filter types.
+
+    Parameters:
+    - k2 (float): Coupling coefficient for the filter.
+    - A_rt (float): Total Round Trip loss .
+    - filter_type (str): Type of filter, either 'all-pass' or 'add-drop'.
+
+    Returns:
+    - k1 (float): Calculated critical coupling coefficient.
+    """
+    # Default value for k1
+    k1 = None
+    
+    if filter_type == 'all-pass':
+        # No action needed for 'all-pass' filter type
+        print("No action needed for 'all-pass' filter type.")
+    elif filter_type == 'add-drop':
+        # Calculate k1 for 'add-drop' filter type
+        k1 = A_rt * k2
+    else:
+        # Handle unexpected filter types gracefully
+        print(f"Warning: Unexpected filter_type '{filter_type}'. Defaulting to None.")
+    
+    return k1
+
 if __name__ == "__main__":
     # Calculate Round Trip Loss Phase
-    A, phi_rt, L_rt = calculate_round_trip_loss_phase(
+    A, phi_rt, L_rt, A_rt = calculate_round_trip_loss_phase(
         user.alpha_i_dB, user.alpha_pn_dB, user.neff_i, user.neff_pn, user.wavelength_0)
-    print(f'Total Round Trip Loss [1/cm]: {round(A, 3)}\n'
-          f'Phase [rad]: {round(phi_rt, 3)}\n'
-          f'Length [um]: {round(L_rt * 1e6, 3)}\n')
+    print(f'Loss [1/cm]: {round(A, 3)}\n'
+          f'Total Round Trip Phase [rad]: {round(phi_rt, 3)}\n'
+          f'Round Trip Length [um]: {round(L_rt * 1e6, 3)}\n'
+          f'Total Round Trip Loss: {round(A_rt,5)}\n')
 
     # Calculate Electric Fields
     Ethru, Edrop, Qc = calculate_electric_fields(
@@ -178,3 +207,4 @@ if __name__ == "__main__":
     print(f'Calculate radius with FSR of {round(user.FSR * 1e-12, 3)} THz\n'
           f'Radius [um]: {round(R * 1e6, 3)}\n')
 
+    
