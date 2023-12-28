@@ -6,6 +6,7 @@
 ├── input_data
 │   └── neff_Voltage_sweep_TE.csv
 ├── optical_frequency_response.py
+├── quality_factor_sweep.py
 ├── README.md
 ├── requirements.txt
 └── user_parameters
