@@ -31,3 +31,6 @@ if __name__ == "__main__":
     plt.figure(2, figsize=(512 * px, 256 * px))
     plt.loglog(k1**2,Qc)
     plt.ylabel('Coupled Q-factor'), plt.xlabel("$|k_1|^2$"), plt.grid(which='both')
+
+    # Show the plots
+    plt.show()
