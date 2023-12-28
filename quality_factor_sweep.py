@@ -26,11 +26,13 @@ if __name__ == "__main__":
     plt.figure(1, figsize=(512 * px, 256 * px))
     plt.loglog(k1**2,k2**2)
     plt.xlabel('$|k_1|^2$'), plt.ylabel("$|k_2|^2$"), plt.grid(which='both')
+    plt.tight_layout()
 
     # Plotting |k1|^2 vs Qc
     plt.figure(2, figsize=(512 * px, 256 * px))
     plt.loglog(k1**2,Qc)
     plt.ylabel('Coupled Q-factor'), plt.xlabel("$|k_1|^2$"), plt.grid(which='both')
+    plt.tight_layout()
 
     # Show the plots
     plt.show()
