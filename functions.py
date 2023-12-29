@@ -175,7 +175,7 @@ def critical_coupling(k2, A_rt, filter_type):
         print("No action needed for 'all-pass' filter type.")
     elif filter_type == 'add-drop':
         # Calculate k1 for 'add-drop' filter type
-        k1 = A_rt * k2
+        k1 = math.sqrt(1-((A_rt**2) * (1-k2**2)))
     else:
         # Handle unexpected filter types gracefully
         print(f"Warning: Unexpected filter_type '{filter_type}'. Defaulting to None.")
