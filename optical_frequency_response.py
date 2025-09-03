@@ -1,14 +1,25 @@
-import user_parameters.user_inputs  as user
-
+import yaml
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-from functions import import_data, calculate_round_trip_loss_phase, calculate_electric_fields
+from ring_utils import import_data, calculate_round_trip_loss_phase, calculate_electric_fields, extinction_ratio_vs_wavelength, load_user_config
+
+# Load user configuration
+user = load_user_config()
+
 
 # Input data
-alpha_pn_dB_, neff_pn_, V = import_data(user.csv_voltage_neff_sweep)
-N = len(alpha_pn_dB_)
+if user.load_csv_voltage_neff_sweep:
+    alpha_pn_dB_per_cm, neff_pn_, V = import_data(user.csv_voltage_neff_sweep)
+    N = len(alpha_pn_dB_per_cm)
+else:
+    N = 1
+    neff_pn_ = np.array([user.neff_pn])
+    V = np.array([0])
+
+# Create a wavelength array for the simulation
 wavelength_array = np.linspace(user.wavelength_0 - user.wavelength_bw/2, 
-                               user.wavelength_0 + user.wavelength_bw/2, user.pts)
+                                user.wavelength_0 + user.wavelength_bw/2, user.pts)
 
 # Arrays for storing results
 phi_rt = [0] * len(wavelength_array)
@@ -17,12 +28,15 @@ Qc = [0] * len(wavelength_array)
 Edrop_max = [0] * N
 Ethru_min = [0] * N
 wave_max = [0] * N
+wave_min = [0] * N
+wave_min_ind = [0] * N
 
 # Initialize 2D arrays (wavelength, Voltage)
 rows, cols = len(wavelength_array), N
 Edrop = np.zeros((rows, cols), dtype=complex)
 Ethru = np.zeros((rows, cols), dtype=complex)
 Qc = np.zeros((rows, cols), dtype=float)
+Qloaded = np.zeros((rows, cols), dtype=float)
 
 if __name__ == "__main__":
     # Get the pixel size for figure dimensions
@@ -34,16 +48,22 @@ if __name__ == "__main__":
         for i, wavelength in enumerate(wavelength_array):
             # Calculate loss and phase
             phi_rt, A, L_rt, A_rt = calculate_round_trip_loss_phase(
-                alpha_i_dB=alpha_pn_dB_[0], alpha_pn_dB=alpha_pn_dB_[j],
-                neff_i=np.real(complex(neff_pn_[0])), neff_pn=np.real(complex(neff_pn_[j])), wavelength = wavelength)
+                alpha_i_dB_per_cm=user.alpha_i_dB_per_cm, 
+                alpha_pn_dB_per_cm=alpha_pn_dB_per_cm[j],
+                neff_i=user.neff_i, 
+                neff_pn=np.real(complex(neff_pn_[j])), 
+                wavelength=wavelength,
+                L_pn=user.L_pn, Lc=user.Lc, radius=user.R)
 
             # Calculate optical fields
-            Ethru[i, j], Edrop[i, j], Qc[i, j] = calculate_electric_fields(user.k1, user.k2, A, L_rt, phi_rt, wavelength, filter_type=user.filter_type, Ng=user.Ng)
+            Ethru[i, j], Edrop[i, j], Qc[i, j], Qloaded[i, j] = calculate_electric_fields(user.k1, user.k2, A, L_rt, phi_rt, wavelength, filter_type=user.filter_type, Ng=user.Ng)
 
         # Record max drop and min through values, map to wavelength (use the data to calculate the tunability rate)
         Edrop_max[j] = np.max(20 * np.log10(abs(Edrop[:, j])))
         Ethru_min[j] = np.min(20 * np.log10(abs(Ethru[:, j])))
         wave_max[j] = wavelength_array[np.argmax(20 * np.log10(abs(Edrop[:, j])))]
+        wave_min[j] = wavelength_array[np.argmin(20 * np.log10(abs(Ethru[:, j])))]
+        wave_min_ind[j] = int(np.argmin(20 * np.log10(abs(Ethru[:, j]))))
 
         # Plot Through-port
         plt.figure(1, figsize=(780 * px, 256 * px))
@@ -73,5 +93,24 @@ if __name__ == "__main__":
         plt.ylabel("Angle (rad)")
         plt.xlabel("Wavelength (nm)")
 
+
+
+        # Example: ER of through vs reference (or drop vs through), across wavelength
+        er_db, er_lin, H = extinction_ratio_vs_wavelength(
+        E_num=Ethru[:, 0],          # numerator field
+        E_den=Ethru[:, N-1],  # denominator field
+        wavelength=wavelength_array * 1e9,  # in nm
+        mode="power"          # or "field"
+    )
+        plt.figure(5, figsize=(780 * px, 256 * px))
+        plt.plot(wavelength_array * 1e9, abs(er_db))
+        plt.xlabel("Wavelength (nm)")
+        plt.ylabel("ER (dB)")
+        plt.title("Extinction Ratio vs Wavelength")
+        plt.grid(True)
+
     # Show the plots
     plt.show()
+
+
+print(f'Q-loaded: {round(Qloaded[wave_min_ind[0],0])}, Q-coupling: {round(Qc[wave_min_ind[0],0])}')
